@@ -1,0 +1,103 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from typing import Tuple
+
+class LinearReg:
+    def __init__(self, lr: float = 0.01, steps: int = 1500):
+        self.lr = lr
+        self.steps = steps
+        self.theta = None
+        self.costs = []
+        self.mu = None
+        self.sigma = None
+
+    def normalize(self, x: np.ndarray) -> np.ndarray:
+        if self.mu is None or self.sigma is None:
+            self.mu = np.mean(x, axis=0)
+            self.sigma = np.std(x, axis=0)
+            self.sigma[self.sigma == 0] = 1
+        return (x - self.mu) / self.sigma
+
+    def add_bias(self, x: np.ndarray) -> np.ndarray:
+        return np.c_[np.ones((x.shape[0], 1)), x]
+
+    def loss(self, x: np.ndarray, y: np.ndarray) -> float:
+        preds = x @ self.theta
+        return np.mean((preds - y) ** 2) / 2
+
+    def train(self, x: np.ndarray, y: np.ndarray) -> None:
+        m, n = x.shape
+        self.theta = np.zeros(n)
+        for i in range(self.steps):
+            preds = x @ self.theta
+            grad = x.T @ (preds - y) / m
+            self.theta -= self.lr * grad
+            self.costs.append(self.loss(x, y))
+            if i % 100 == 0:
+                print(f"Step {i}: Cost = {self.costs[-1]:.4f}")
+
+    def fit(self, x: np.ndarray, y: np.ndarray, norm: bool = True) -> 'LinearReg':
+        if norm:
+            x = self.normalize(x)
+        x = self.add_bias(x)
+        self.train(x, y)
+        return self
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        if self.mu is not None:
+            x = self.normalize(x)
+        x = self.add_bias(x)
+        return x @ self.theta
+
+    def score(self, x: np.ndarray, y: np.ndarray) -> float:
+        y_pred = self.predict(x)
+        ssr = np.sum((y - y_pred) ** 2)
+        sst = np.sum((y - np.mean(y)) ** 2)
+        return 1 - ssr / sst
+
+    def plot_cost(self):
+        plt.plot(self.costs)
+        plt.title("Cost over Iterations")
+        plt.xlabel("Iteration")
+        plt.ylabel("Cost")
+        plt.grid(True)
+        plt.show()
+
+    def plot_fit(self, x: np.ndarray, y: np.ndarray):
+        if x.shape[1] != 1:
+            raise ValueError("Only single feature supported for plot")
+        plt.scatter(x, y, label="Data")
+        line_x = np.linspace(x.min(), x.max(), 100).reshape(-1, 1)
+        line_y = self.predict(line_x)
+        plt.plot(line_x, line_y, color='red', label="Fit")
+        plt.legend()
+        plt.grid(True)
+        plt.title("Linear Regression Fit")
+        plt.show()
+
+def load_csv(file: str) -> Tuple[np.ndarray, np.ndarray]:
+    df = pd.read_csv(file)
+    return df.iloc[:, :-1].values, df.iloc[:, -1].values
+
+def main():
+    try:
+        x, y = load_csv("data/house_prices.csv")
+    except FileNotFoundError:
+        print("Data not found, generating demo data...")
+        np.random.seed(0)
+        x = np.random.rand(100, 1) * 10
+        y = 5 + 2 * x.flatten() + np.random.randn(100) * 3
+
+    model = LinearReg(lr=0.01, steps=1500)
+    model.fit(x, y)
+    print(f"R^2 Score: {model.score(x, y):.4f}")
+    model.plot_cost()
+    model.plot_fit(x, y)
+
+    test_x = np.array([[5.0]])
+    pred = model.predict(test_x)[0]
+    print(f"Predicted price for area 5.0: {pred:.2f}")
+
+if __name__ == "__main__":
+    main()
