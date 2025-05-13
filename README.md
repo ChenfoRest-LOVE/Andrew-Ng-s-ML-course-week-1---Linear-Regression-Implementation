@@ -1,4 +1,4 @@
-# Andrew-Ng-s-ML-course-week-1---Linear-Regression-Implementation
+# week-1---Linear-Regression-Implementation
 吴恩达机器学习课程第一周总结  
 本项目是吴恩达机器学习课程第一周内容的总结与代码实现。
 
